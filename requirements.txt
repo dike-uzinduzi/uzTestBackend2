@@ -24,7 +24,7 @@ Naked==0.1.32
 oauthlib==3.2.2
 pesepay==1.0.8
 pillow==10.4.0
-psycopg2==2.9.9
+psycopg2-binary
 pycparser==2.22
 PyJWT==2.9.0
 pyodbc==5.2.0
