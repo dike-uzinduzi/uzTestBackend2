@@ -163,10 +163,10 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.sendgrid.net"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "apikey"  # Yes, literally 'apikey' as username
+EMAIL_HOST_USER = "apikey"  
 EMAIL_HOST_PASSWORD = "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"  # Your SendGrid API Key
 
-DEFAULT_FROM_EMAIL = "dike@uzinduziafrica.com"  # Your verified sender email
+DEFAULT_FROM_EMAIL = "dike@uzinduziafrica.com" 
 DJOSER = {
     
     'PASSWORD_RESET_CONFIRM_URL': 'password-reset/{uid}/{token}',
@@ -176,7 +176,11 @@ DJOSER = {
     'USER_CREATE_PASSWORD_RETYPE': True,
     'PASSWORD_RESET_CONFIRM_RETYPE': True,
     'TOKEN_MODEL': None,
-    'SOCIAL_AUTH_ALLOWED_REDIRECT_URIS': getenv('REDIRECT_URLS').split(',')
+    'SOCIAL_AUTH_ALLOWED_REDIRECT_URIS': getenv('REDIRECT_URLS').split(','),
+    'SERIALIZERS': {
+        'user': 'users.serializers.CustomUserSerializer',
+        'current_user': 'users.serializers.CustomUserSerializer',}
+    
 }
 
 AUTH_COOKIE = 'access'

@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import UserAccount
+from djoser.serializers import UserSerializer as BaseUserSerializer
+from .models import UserAccount
 
 class UserAccountUpdateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -19,3 +21,19 @@ class UserAccountUpdateSerializer(serializers.ModelSerializer):
             if 'genre' in data and not data['genre']:
                 raise serializers.ValidationError("Genre cannot be empty.")
         return data
+
+class CustomUserSerializer(BaseUserSerializer):
+    role = serializers.SerializerMethodField()
+
+    class Meta(BaseUserSerializer.Meta):
+        model = UserAccount
+        fields ='__all__'
+        read_only_fields = ('id', 'is_superuser', 'is_staff', 'is_artist', 'is_producer', 'date_joined')
+    def get_role(self, obj):
+        if obj.is_superuser:
+            return 'admin'
+        elif obj.is_artist:
+            return 'artist'
+        elif obj.is_producer:
+            return 'producer'
+        return 'fan'

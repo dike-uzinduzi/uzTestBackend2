@@ -29,8 +29,8 @@ class UserAccountManager(BaseUserManager):
 
     def create_superuser(self, email, password=None, **kwargs):
         kwargs['is_superuser'] = True
-        kwargs['is_staff'] = True  # For superuser, set is_staff to True
-        kwargs['is_artist'] = False  # Superusers are not artists by default
+        kwargs['is_staff'] = True  
+        kwargs['is_artist'] = False 
 
         user = self.create_user(
             email,
@@ -54,7 +54,7 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
 
     phone_regex = RegexValidator(
         regex=r'^\+?1?\d{9,15}$',
-        message=_("Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.")
+        message=_("Phone number must be entered in the format: '+263774556973'. Up to 15 digits allowed.")
     )
     phone_number = models.CharField(
         validators=[phone_regex], max_length=17, blank=True, null=True
@@ -75,27 +75,27 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     
 
     genre = models.CharField(max_length=255, blank=True, null=True)
-
+    is_producer = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)  # Required for both staff and artists
-    is_artist = models.BooleanField(default=False)  # Identifies whether the user is an artist
+    is_staff = models.BooleanField(default=False)  
+    is_artist = models.BooleanField(default=False) 
 
-    # Permissions fields
+    
     is_superuser = models.BooleanField(default=False)
 
     objects = UserAccountManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name']  # Removed 'is_artist' from required fields
+    REQUIRED_FIELDS = ['first_name', 'last_name'] 
 
     def __str__(self):
-        # Return stage name for artists, email for others
+    
         if self.is_artist and self.stage_name:
             return self.stage_name
         return self.email
 
     def save(self, *args, **kwargs):
-        # Ensure that artist-specific fields are only filled for artists
+   
         if not self.is_artist:
             self.stage_name = None
             self.genre = None

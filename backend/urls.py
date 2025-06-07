@@ -9,7 +9,7 @@ urlpatterns = [
     path('api/',include('djoser.urls')),
     path('api/',include('users.urls')),
     path('api/',include('albums.urls')),
-    #path('api/',include('payments.urls')),
+    path('api/',include('payments.urls')),
     path('api/',include('artists.urls')),
 ]
 if settings.DEBUG:

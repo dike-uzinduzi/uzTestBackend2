@@ -4,21 +4,33 @@ from .models import Album, Track,Genre
 class TrackInline(admin.TabularInline):
     model = Track
     extra = 1
-
-class AlbumAdmin(admin.ModelAdmin):
-    list_display = ('title', 'artist', 'release_date', 'genre')
-    inlines = [TrackInline]
+class TrackAdmin(admin.ModelAdmin):
+    list_display = ('title', 'album', 'duration', 'track_number', 'featured_artists')
+    search_fields = ('title', 'album__title')
 
     def has_add_permission(self, request, obj=None):
-        # Only superusers can add albums
         return request.user.is_superuser
 
     def has_change_permission(self, request, obj=None):
-        # Only superusers can edit albums
         return request.user.is_superuser
 
     def has_delete_permission(self, request, obj=None):
-        # Only superusers can delete albums
+        return request.user.is_superuser
+
+class AlbumAdmin(admin.ModelAdmin):
+    list_display = ('title', 'artist', 'release_date', 'genre','duration', 'is_published', 'is_featured', 'created_at', 'updated_at')
+    inlines = [TrackInline]
+
+    def has_add_permission(self, request, obj=None):
+       
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        
+        return request.user.is_superuser
+
+    def has_delete_permission(self, request, obj=None):
+       
         return request.user.is_superuser
 
 admin.site.register(Album, AlbumAdmin)
