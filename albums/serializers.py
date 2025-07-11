@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.shortcuts import get_object_or_404
-from .models import Album, Plaque, Track, PlaquePurchase
+from .models import Album, Plaque, Track, PlaquePurchase,Genre
 
 
 class PlaquePurchaseCountSerializer(serializers.ModelSerializer):
@@ -8,6 +8,11 @@ class PlaquePurchaseCountSerializer(serializers.ModelSerializer):
         model = PlaquePurchase
         fields = ['id']
 
+class GenreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Genre
+        fields='__all__'
+        
 class TrackSerializer(serializers.ModelSerializer):
     class Meta:
         model = Track

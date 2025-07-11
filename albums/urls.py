@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     LatestAlbumsView, AlbumDetailView, AllAlbumsView, UserPlaquePurchaseCountView,
-    AllTracksView, TrackDetailView, AlbumTracksView, AlbumStatisticsView
+    AllTracksView, TrackDetailView, AlbumTracksView, AlbumStatisticsView,AllGenreView
 )
 
 urlpatterns = [
@@ -13,4 +13,5 @@ urlpatterns = [
     path('tracks/', AllTracksView.as_view(), name='all-tracks'),
     path('tracks/<int:id>/', TrackDetailView.as_view(), name='track-detail'),
     path('albums/<int:id>/tracks/', AlbumTracksView.as_view(), name='album-tracks'),
+    path('albums/genre',AllGenreView.as_view(),name='genreview')
 ]

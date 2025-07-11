@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'users',
     'albums',
     'artists',
+    'payments',
    
     
 ]
@@ -84,11 +85,16 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 
 if DEVELOPMENT_MODE is True:
-    DATABASES = {
+   DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',  # This will create a file db.sqlite3 in your project root
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'uzinduzi_db',
+        'USER': 'postgres',
+        'PASSWORD': 'pz42uN2BBV',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
+
 }
 
 
@@ -159,12 +165,20 @@ EMAIL_HOST_USER = config["EMAIL_HOST_USER"]
 EMAIL_HOST_PASSWORD = config["EMAIL_HOST_PASSWORD"]
 EMAIL_USE_TLS = False
 """
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+#EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = "smtp.sendgrid.net"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = "apikey"  
 EMAIL_HOST_PASSWORD = "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"  # Your SendGrid API Key
+
+# EMAIL_BACKEND = "mail.sendgrid_backend.SendGridEmailBackend"
+# EMAIL_HOST = "smtp.sendgrid.net"
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = "apikey"
+# EMAIL_HOST_PASSWORD = "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"
 
 DEFAULT_FROM_EMAIL = "dike@uzinduziafrica.com" 
 DJOSER = {
@@ -216,8 +230,8 @@ CORS_ALLOW_CREDENTIALS = True
 
 PESEPAY_INTEGRATION_KEY = 'f38b03198fbc4957b948cd912ae7521b'
 PESEPAY_ENCRYPTION_KEY = '12e2d157-c120-40cd-aae3-6c5039675cad'
-PESEPAY_RESULT_URL = 'http://localhost:4200/dashboard/payment/result'
-PESEPAY_RETURN_URL = 'http://localhost:4200/dashboard/payment/return'
+PESEPAY_RESULT_URL = 'http://localhost:4200/pesepay/result'
+PESEPAY_RETURN_URL = 'http://localhost:4200/pesepay/return'
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from django.db import models
-from .serializers import SupportAlbumSerializer, AlbumSerializer, TrackSerializer
-from .models import Album, PlaquePurchase, AlbumActivity, Track
+from .serializers import SupportAlbumSerializer, AlbumSerializer, TrackSerializer,GenreSerializer
+from .models import Album, PlaquePurchase, AlbumActivity, Track,Genre
 
 class LatestAlbumsView(generics.ListAPIView):
     queryset = Album.objects.order_by('-release_date')[:10]
@@ -33,6 +33,10 @@ class UserPlaquePurchaseCountView(APIView):
 class AllTracksView(generics.ListAPIView):
     queryset = Track.objects.all()
     serializer_class = TrackSerializer
+
+class AllGenreView(generics.ListAPIView):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
 
 class TrackDetailView(generics.RetrieveAPIView):
     queryset = Track.objects.all()
