@@ -11,7 +11,8 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', 'False').lower() == 'true'
-ALLOWED_HOSTS = ['*']
+# api/settings.py
+ALLOWED_HOSTS = ['127.0.0.1', '.vercel.app']
 
 # -----------------------------
 # 📌 DJANGO REST FRAMEWORK
