@@ -14,7 +14,7 @@ urlpatterns = [
     path('payments/seamless/', CreateSeamlessPaymentView.as_view(), name='create-seamless-payment'),
     path('payments/redirect/', InitiateRedirectPaymentView.as_view(), name='initiate-redirect-payment'),
     
-    # Payment status and details
+    # Payment status and details I am using these
     path('payments/status/<str:reference_number>/', CheckPaymentStatusView.as_view(), name='check-payment-status'),
     path('payments/user/', UserPaymentsView.as_view(), name='user-payments'),
     path('payments/detail/<uuid:payment_id>/', PaymentDetailView.as_view(), name='payment-detail'),

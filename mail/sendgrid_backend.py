@@ -6,7 +6,7 @@ from sendgrid.helpers.mail import Mail
 
 class SendGridEmailBackend(BaseEmailBackend):
     def send_messages(self, email_messages):
-        sg = SendGridAPIClient(os.environ.get("SENDGRID_API_KEY"))
+        sg = SendGridAPIClient(os.environ.get("EMAIL_HOST_PASSWORD"))
         for message in email_messages:
             mail = Mail(
                 from_email=message.from_email,

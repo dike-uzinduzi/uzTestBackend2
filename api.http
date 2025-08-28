@@ -1,0 +1,46 @@
+GET   http://127.0.0.1:8000/auth/users/me/ HTTP/1.1
+Authorization: JWT eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU2MTYyNDc3LCJpYXQiOjE3NTYxNjIxNzgsImp0aSI6ImJlZTY4Y2JiMjVmODRjNTNhYzU5NjBmYzk4ZmFhOTAzIiwidXNlcl9pZCI6IjEifQ.MVVj9P7tMRGGuEQA4WKTDjSkDQwcvv_YHcB3JrIKj-g
+
+
+###
+POST   http://127.0.0.1:8000/auth/token/login/  HTTP/1.1
+Content-Type: application/json
+
+{
+    "username":"admin",
+    "password":"test"
+}
+
+###
+POST   http://127.0.0.1:8000/auth/token/logout/  HTTP/1.1
+Authorization: JWT eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU2MTYyNDc3LCJpYXQiOjE3NTYxNjIxNzgsImp0aSI6ImJlZTY4Y2JiMjVmODRjNTNhYzU5NjBmYzk4ZmFhOTAzIiwidXNlcl9pZCI6IjEifQ.MVVj9P7tMRGGuEQA4WKTDjSkDQwcvv_YHcB3JrIKj-g
+
+###
+POST   http://127.0.0.1:8000/auth/jwt/create/  HTTP/1.1
+Content-Type: application/json
+
+{
+    "username":"admin",
+    "password":"test"
+}
+
+###
+POST   http://127.0.0.1:8000/auth/jwt/refresh/  HTTP/1.1
+Content-Type: application/json
+
+{
+   "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc1NjI0OTA1NSwiaWF0IjoxNzU2MTYyNjU1LCJqdGkiOiI3MjYxNjJkZmVmOWU0NzdjYmNmMWY4ZGNlMzI4YzcyYSIsInVzZXJfaWQiOiIxIn0.fuqCm6vWj7N6or6JpInjEwb8DD3CTH9L_tUmAIslwSU"
+}
+###
+POST   http://127.0.0.1:8000/api/users/  HTTP/1.1
+Content-Type: application/json
+
+{
+  "first_name": "Dike",
+  "last_name": "Mahoko",
+  "email": "ggss@gmail.com" ,
+  "password":   "pz42uN2BBV@",
+  "re_password":"pz42uN2BBV@"
+  }
+
+

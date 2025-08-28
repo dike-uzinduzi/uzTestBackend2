@@ -5,7 +5,7 @@ from .views import (
     CustomTokenRefreshView,
     CustomTokenVerifyView,
     LogoutView,UserAccountUpdateView,
-    UserAccountUpdateView
+    UserAccountUpdateView,
 )
 
 urlpatterns = [
@@ -21,3 +21,14 @@ urlpatterns = [
     path('jwt/verify/', CustomTokenVerifyView.as_view()),
     path('logout/', LogoutView.as_view()),
 ]
+
+
+# # Djoser URLs
+#     path('auth/', include('djoser.urls')),
+#     path('auth/', include('djoser.urls.jwt')),
+    
+#     # Custom social auth URL
+#     path('auth/o/google-oauth2/', CustomGoogleAuthView.as_view(), name='google-auth'),
+    
+#     # Keep the general provider URL for other providers
+#     path('auth/o/<str:provider>/', CustomGoogleAuthView.as_view(), name='provider-auth')

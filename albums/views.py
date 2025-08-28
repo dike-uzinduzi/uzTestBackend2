@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from django.db import models
-from .serializers import SupportAlbumSerializer, AlbumSerializer, TrackSerializer,GenreSerializer
+from .serializers import SupportAlbumSerializer, AlbumSerializer, TrackSerializer,GenreSerializer,PlaquePurchasDetail
 from .models import Album, PlaquePurchase, AlbumActivity, Track,Genre
 
 class LatestAlbumsView(generics.ListAPIView):
@@ -29,6 +29,15 @@ class UserPlaquePurchaseCountView(APIView):
         user = request.user
         plaque_count = PlaquePurchase.objects.filter(fan=user).count()
         return Response({'plaques_purchased': plaque_count})
+    
+class AllPlaquePurchaseView(APIView):
+    permission_classes=[permissions.IsAuthenticated]
+
+    serializer_class = PlaquePurchasDetail
+    def get(self,request):
+        user=request.user
+        plaques = PlaquePurchase.objects.filter(PlaquePurchase.payment_status).count()
+        return Response(plaques)
 
 class AllTracksView(generics.ListAPIView):
     queryset = Track.objects.all()

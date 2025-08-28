@@ -1,70 +1,73 @@
-import sys
-import dj_database_url
-from os import getenv, path
+import os
 from pathlib import Path
-from django.core.management.utils import get_random_secret_key
-import dotenv
+from decouple import config
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# -----------------------------
+# 📌 PATHS & CORE CONFIG
+# -----------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
- 
-dotenv_file=BASE_DIR / '.env.local'
+ROOT_URLCONF = 'backend.urls'
+WSGI_APPLICATION = 'backend.wsgi.application'
 
-if Path.is_file(dotenv_file):
-    dotenv.load_dotenv(dotenv_file  )
+SECRET_KEY = config('SECRET_KEY')
+DEBUG = config('DEBUG', 'False').lower() == 'true'
+ALLOWED_HOSTS = ['*']
 
-DEVELOPMENT_MODE=getenv('DEVELOPMENT_MODE','False')=='True'
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = getenv('DJANGO_SECRET_KEY', get_random_secret_key())
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = getenv("DEBUG", "False") == "True"
-
-ALLOWED_HOSTS = getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
-
+# -----------------------------
+# 📌 DJANGO REST FRAMEWORK
+# -----------------------------
 REST_FRAMEWORK = {
-        'DEFAULT_AUTHENTICATION_CLASSES': [
+    'DEFAULT_AUTHENTICATION_CLASSES': [
         'users.authentication.CustomJWTAuthentication',
-        ],
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated'
     ]
 }
 
+# -----------------------------
+# 📌 INSTALLED APPS
+# -----------------------------
 INSTALLED_APPS = [
+    # Third-party
     'djoser',
     'rest_framework',
+    'corsheaders',
+    'storages',
+    'social_django',
+
+    # Django core
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'corsheaders',
-    'storages',
-    'social_django',
+
+    # Local apps
     'users',
     'albums',
     'artists',
     'payments',
-   
-    
 ]
 
+# -----------------------------
+# 📌 MIDDLEWARE
+# -----------------------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
 ]
 
-ROOT_URLCONF = 'backend.urls'
-
+# -----------------------------
+# 📌 TEMPLATES
+# -----------------------------
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -81,159 +84,136 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'backend.wsgi.application'
+# -----------------------------
+# 📌 DATABASE CONFIG
+# -----------------------------
+DB_ENGINE = config('ENGINE').strip()
+DB_NAME = config('NAME')
+DB_USER = config('USER')
+DB_PASSWORD = config('PASSWORD')
+DB_HOST = config('HOST')
+DB_PORT = config('PORT')
 
+print(f"🔥 ENGINE SET TO: '{DB_ENGINE}'")
 
-if DEVELOPMENT_MODE is True:
-   DATABASES = {
+DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'uzinduzi_db',
-        'USER': 'postgres',
-        'PASSWORD': 'pz42uN2BBV',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': DB_ENGINE,
+        'NAME': DB_NAME,
+        'USER': DB_USER,
+        'PASSWORD': DB_PASSWORD,
+        'HOST': DB_HOST,
+        'PORT': DB_PORT,
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        }
     }
-
 }
 
-
+# -----------------------------
+# 📌 PASSWORD VALIDATORS
+# -----------------------------
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+# -----------------------------
+# 📌 LOCALIZATION
+# -----------------------------
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
-if DEVELOPMENT_MODE is True:
-    STATIC_URL =  'static/'
-    STATIC_ROOT=BASE_DIR / 'static/'
-    MEDIA_URL='media/'
-    MEDIA_ROOT=BASE_DIR / 'media/'
-else:
-    STORAGES = {
-    'default': {
-        'BACKEND': 'storages.backends.s3.S3Storage',
-        'STATICFILES_STORAGE':'storages.backends.s3.S3Storage'
-          },
+# -----------------------------
+# 📌 STATIC & MEDIA
+# -----------------------------
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-                                                                                                       
-}
-AUTHENTICATION_BACKENDS=[
-    'social_core.backends.google.GoogleOAuth2',
-    'social_core.backends.facebook.FacebookOAuth2',
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media/'
+
+
+# -----------------------------
+# 📌 AUTH
+# -----------------------------
+AUTH_USER_MODEL = 'users.UserAccount'
+AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
+    
 ]
-# Email settings
-"""
-EMAIL_BACKEND = 'django_ses.SESBackend'
-DEFAULT_FROM_EMAIL = getenv('AWS_SES_FROM_EMAIL')
 
-AWS_SES_ACCESS_KEY_ID = getenv('AWS_SES_ACCESS_KEY_ID')
-AWS_SES_SECRET_ACCESS_KEY = getenv('AWS_SES_SECRET_ACCESS_KEY')
-AWS_SES_REGION_NAME = getenv('AWS_SES_REGION_NAME')
-AWS_SES_REGION_ENDPOINT = f'email.{AWS_SES_REGION_NAME}.amazonaws.com'
-AWS_SES_FROM_EMAIL = getenv('AWS_SES_FROM_EMAIL')
-USE_SES_V2 = True
-"""
-DOMAIN=getenv('DOMAIN')
-SITE_NAME='Uzinduzi Africa'
+# -----------------------------
+# 📌 CORS CONFIG
+# -----------------------------
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS', 'https://app.uzinduziafrica.com'
+).split(',')
+CORS_ALLOW_CREDENTIALS = True
 
-"""
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.hostinger.com'
-EMAIL_PORT = 587
-DEFAULT_FROM_EMAIL = config["DEFAULT_FROM_EMAIL"]
-EMAIL_HOST_USER = config["EMAIL_HOST_USER"]
-EMAIL_HOST_PASSWORD = config["EMAIL_HOST_PASSWORD"]
-EMAIL_USE_TLS = False
-"""
-#EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = "smtp.sendgrid.net"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "apikey"  
-EMAIL_HOST_PASSWORD = "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"  # Your SendGrid API Key
-
-# EMAIL_BACKEND = "mail.sendgrid_backend.SendGridEmailBackend"
-# EMAIL_HOST = "smtp.sendgrid.net"
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = "apikey"
-# EMAIL_HOST_PASSWORD = "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"
-
-DEFAULT_FROM_EMAIL = "dike@uzinduziafrica.com" 
-DJOSER = {
-    
-    'PASSWORD_RESET_CONFIRM_URL': 'password-reset/{uid}/{token}',
-    'SEND_ACTIVATION_EMAIL':True,
-    "SEND_CONFIRMATION_EMAIL": True,
-    'ACTIVATION_URL': 'activation/{uid}/{token}',
-    'USER_CREATE_PASSWORD_RETYPE': True,
-    'PASSWORD_RESET_CONFIRM_RETYPE': True,
-    'TOKEN_MODEL': None,
-    'SOCIAL_AUTH_ALLOWED_REDIRECT_URIS': getenv('REDIRECT_URLS').split(','),
-    'SERIALIZERS': {
-        'user': 'users.serializers.CustomUserSerializer',
-        'current_user': 'users.serializers.CustomUserSerializer',}
-    
-}
-
+# -----------------------------
+# 📌 COOKIE CONFIG
+# -----------------------------
 AUTH_COOKIE = 'access'
 AUTH_COOKIE_MAX_AGE = 60 * 60 * 24
-AUTH_COOKIE_SECURE = getenv('AUTH_COOKIE_SECURE', 'True') == 'True'
+AUTH_COOKIE_SECURE = config('AUTH_COOKIE_SECURE', 'True') == 'True'
 AUTH_COOKIE_HTTP_ONLY = True
 AUTH_COOKIE_PATH = '/'
 AUTH_COOKIE_SAMESITE = 'None'
 
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = getenv('GOOGLE_AUTH_KEY')
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = getenv('GOOGLE_AUTH_SECRET_KEY')
-SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
-    'https://www.googleapis.com/auth/userinfo.email',
-    'https://www.googleapis.com/auth/userinfo.profile',
-    'openid'
-]
-SOCIAL_AUTH_GOOGLE_OAUTH2_EXTRA_DATA = ['first_name', 'last_name']
+# -----------------------------
+# 📌 EMAIL CONFIG — SENDGRID
 
-SOCIAL_AUTH_FACEBOOK_KEY = getenv('FACEBOOK_AUTH_KEY')
-SOCIAL_AUTH_FACEBOOK_SECRET = getenv('FACEBOOK_AUTH_SECRET_KEY')
-SOCIAL_AUTH_FACEBOOK_SCOPE = ['email']
-SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {
-    'fields': 'email, first_name, last_name'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+#EMAIL_BACKEND = 'django.core.mail.backends.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
+
+
+
+# -----------------------------
+# 📌 DJOSER CONFIG
+# -----------------------------
+DJOSER = {
+    'SERIALIZERS': {
+        #'user_create': 'core.serializers.UserCreateSerializer',
+        'current_user': 'users.serializers.CustomUserSerializer',
+        'user': 'users.serializers.CustomUserSerializer',
+    },
+     'SEND_ACTIVATION_EMAIL': True,
+    'ACTIVATION_URL': 'activation/{uid}/{token}',
+     'USER_CREATE_PASSWORD_RETYPE': True,
+    'PASSWORD_RESET_CONFIRM_RETYPE': True,
+     'TOKEN_MODEL': None,
+     'PASSWORD_RESET_CONFIRM_URL': 'password-reset/{uid}/{token}',
+    'PASSWORD_RESET_SHOW_EMAIL_NOT_FOUND': True,
 }
 
-CORS_ALLOWED_ORIGINS = getenv(
-    'CORS_ALLOWED_ORIGINS',
-    'http://localhost:4200'
-).split(',')
-CORS_ALLOW_CREDENTIALS = True
 
 
+# -----------------------------
+# 📌 PESEPAY CONFIG
+# -----------------------------
+PESEPAY_INTEGRATION_KEY = config('PESEPAY_INTEGRATION_KEY')
+PESEPAY_ENCRYPTION_KEY = config('PESEPAY_ENCRYPTION_KEY')
+PESEPAY_RETURN_URL = config('PESEPAY_RETURN_URL')
+PESEPAY_RESULT_URL = config('PESEPAY_RESULT_URL')
 
-PESEPAY_INTEGRATION_KEY = 'f38b03198fbc4957b948cd912ae7521b'
-PESEPAY_ENCRYPTION_KEY = '12e2d157-c120-40cd-aae3-6c5039675cad'
-PESEPAY_RESULT_URL = 'http://localhost:4200/pesepay/result'
-PESEPAY_RETURN_URL = 'http://localhost:4200/pesepay/return'
+# -----------------------------
+# 📌 APP DOMAIN
+# -----------------------------
+DOMAIN = config('DOMAIN')
+SITE_NAME = 'Uzinduzi Africa'
 
-
+# -----------------------------
+# 📌 DEFAULT PK FIELD
+# -----------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-AUTH_USER_MODEL = 'users.UserAccount'

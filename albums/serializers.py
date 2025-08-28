@@ -94,3 +94,8 @@ class PlaquePurchaseSerializer(serializers.ModelSerializer):
             'payment_method', 'transaction_id'
         ]
         read_only_fields = ['hash_key', 'purchase_date']
+
+class PlaquePurchasDetail(serializers.ModelSerializer):
+    class Meta:
+        model = PlaquePurchase
+        fields = '__all__'
