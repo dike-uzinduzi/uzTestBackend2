@@ -88,27 +88,42 @@ TEMPLATES = [
 # -----------------------------
 # 📌 DATABASE CONFIG
 # -----------------------------
-DB_ENGINE = config('ENGINE').strip()
-DB_NAME = config('NAME')
-DB_USER = config('USER')
-DB_PASSWORD = config('PASSWORD')
-DB_HOST = config('HOST')
-DB_PORT = config('PORT')
+# DB_ENGINE = config('ENGINE').strip()
+# DB_NAME = config('NAME')
+# DB_USER = config('USER')
+# DB_PASSWORD = config('PASSWORD')
+# DB_HOST = config('HOST')
+# DB_PORT = config('PORT')
 
-print(f"🔥 ENGINE SET TO: '{DB_ENGINE}'")
+# print(f"🔥 ENGINE SET TO: '{DB_ENGINE}'")
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': DB_ENGINE,
+#         'NAME': DB_NAME,
+#         'USER': DB_USER,
+#         'PASSWORD': DB_PASSWORD,
+#         'HOST': DB_HOST,
+#         'PORT': DB_PORT,
+#         'OPTIONS': {
+#             'charset': 'utf8mb4',
+#         }
+#     }
+# }
 
 DATABASES = {
     'default': {
-        'ENGINE': DB_ENGINE,
-        'NAME': DB_NAME,
-        'USER': DB_USER,
-        'PASSWORD': DB_PASSWORD,
-        'HOST': DB_HOST,
-        'PORT': DB_PORT,
+        'ENGINE': 'django_tidb',
+        'NAME': 'test',
+        'USER': '2Fw9y2EzJRmW7fo.root',
+        'PASSWORD': 'U4lrtfDJ6SnipwZE',
+        'HOST': 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
+        'PORT': 4000,
         'OPTIONS': {
-            'charset': 'utf8mb4',
+            'ssl_mode': 'VERIFY_IDENTITY',
+            'ssl': {'ca': 'isrgrootx1.pem'}
         }
-    }
+    },
 }
 
 # -----------------------------
