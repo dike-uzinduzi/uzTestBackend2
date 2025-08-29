@@ -166,7 +166,7 @@ AUTHENTICATION_BACKENDS = [
 # 📌 CORS CONFIG
 # -----------------------------
 CORS_ALLOWED_ORIGINS = [
-    "https://yourfrontend.onrender.com",
+    "https://app.uzinduziafrica.com",
     "http://localhost:4200",
 ]
 CORS_ALLOW_CREDENTIALS = True
