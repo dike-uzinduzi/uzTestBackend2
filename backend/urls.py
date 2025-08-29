@@ -10,7 +10,6 @@ urlpatterns = [
     path('api/',include('users.urls')),
     path('api/',include('albums.urls')),
     path('api/',include('payments.urls')),
-    path('api/',include('artists.urls')),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
