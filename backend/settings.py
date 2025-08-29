@@ -165,9 +165,7 @@ AUTHENTICATION_BACKENDS = [
 # -----------------------------
 # 📌 CORS CONFIG
 # -----------------------------
-CORS_ALLOWED_ORIGINS = config(
-    'CORS_ALLOWED_ORIGINS', 'https://app.uzinduziafrica.com'
-).split(',')
+CORS_ALLOWED_ORIGINS = 'https://app.uzinduziafrica.com'
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     "https://uztestbackend2.onrender.com",
