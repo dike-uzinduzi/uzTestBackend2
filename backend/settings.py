@@ -113,7 +113,7 @@ TEMPLATES = [
 DATABASES = {
     'default': {
         'ENGINE': 'django_tidb',
-        'NAME': 'test',
+        'NAME': 'uzi_db',
         'USER': '2Fw9y2EzJRmW7fo.root',
         'PASSWORD': 'U4lrtfDJ6SnipwZE',
         'HOST': 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
