@@ -3,19 +3,7 @@ from django.db import models
 from django.conf import settings
 
 class Genre(models.Model):
-    GENRE_CHOICES = [
-        ('jiti', 'Jiti'),
-        ('sungura', 'Sungura'),
-        ('jazz', 'Jazz'),
-        ('hip_hop', 'Hip-Hop'),
-        ('gospel', 'Gospel'),
-        ('reggae', 'Reggae'),
-        ('zimdancehall', 'Zimdancehall'),
-        ('mbira', 'Mbira'),
-        ('dancehall', 'Dancehall'),
-        ('trap', 'Trap'),
-    ]
-    name = models.CharField(max_length=255, choices=GENRE_CHOICES, unique=True)
+    name = models.CharField(max_length=255, unique=True)
 
     def __str__(self):
         return self.name
@@ -84,7 +72,8 @@ class Track(models.Model):
     track_number = models.IntegerField(null=True, blank=True)
     featured_artists = models.CharField(max_length=255, blank=True, null=True)
     track_art = models.ImageField(upload_to='albums/tracks/art/', blank=True, null=True)
-    track_credits = models.TextField(blank=True, null=True)
+    track_description = models.TextField(blank=True, null=True)
+    special_credits = models.TextField(blank=True, null=True)
     backing_vocals = models.CharField(max_length=255, blank=True, null=True)
     instrumentation = models.CharField(max_length=255, blank=True, null=True)
     release_date = models.DateField(null=True, blank=True)

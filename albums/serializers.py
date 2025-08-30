@@ -20,7 +20,8 @@ class TrackSerializer(serializers.ModelSerializer):
 class AlbumSerializer(serializers.ModelSerializer):
     
     artist_name = serializers.CharField(source='artist.first_name', read_only=True)  # Access the stage_name field
-    genre_name = serializers.CharField(source='genre.name', read_only=True)  # Ensure this points to the genre model correctly
+    genre_name = serializers.CharField(source='genre.name', read_only=True)
+    stage_name=serializers.CharField(source='artist.stage_name')  # Ensure this points to the genre model correctly
    # current_supporters = serializers.IntegerField(source='current_supporters', read_only=True)
     class Meta:
         model = Album
