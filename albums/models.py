@@ -1,6 +1,8 @@
 import uuid
 from django.db import models
 from django.conf import settings
+from .utils import generate_purchase_hash
+
 
 class Genre(models.Model):
     name = models.CharField(max_length=255, unique=True)
@@ -105,10 +107,13 @@ class Plaque(models.Model):
     hash_key = models.CharField(max_length=100, unique=True, blank=True)
 
     def save(self, *args, **kwargs):
-        if not self.hash_key:
-            self.hash_key = str(uuid.uuid4())
+        if not self.hash_key: 
+            self.hash_key = generate_purchase_hash(
+                self.fan_id,
+                self.plaque_id,
+                self.album_id
+            )
         super().save(*args, **kwargs)
-
     def __str__(self):
         return f"{self.plaque_type} Plaque - Hash: {self.hash_key}"
     

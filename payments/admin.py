@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Payment, PaymentLog
+from .models import *
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
@@ -47,3 +47,5 @@ class PaymentLogAdmin(admin.ModelAdmin):
     
     def has_change_permission(self, request, obj=None):
         return False  # Make logs read-only
+
+# @admin.register(Pla)
