@@ -10,8 +10,9 @@ ROOT_URLCONF = 'backend.urls'
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', 'False').lower() == 'true'
+DEBUG =False
 # api/settings.py
+
 ALLOWED_HOSTS = [
     'uztestbackend2.onrender.com', 
     'localhost', 
