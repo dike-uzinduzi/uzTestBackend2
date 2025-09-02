@@ -12,7 +12,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', 'False').lower() == 'true'
 # api/settings.py
-ALLOWED_HOSTS = ['uztestbackend2.onrender.com','localhost','127.0.0.1:8000']
+ALLOWED_HOSTS = ['uztestbackend2.onrender.com','localhost','127.0.0.1:8000','13.62.103.253:8000']
 
 # -----------------------------
 # 📌 DJANGO REST FRAMEWORK
