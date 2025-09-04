@@ -18,7 +18,8 @@ ALLOWED_HOSTS = [
     'localhost', 
     '127.0.0.1',           # Remove :8000
     '13.62.103.253',       # Add your server IP
-    'app.uzinduziafrica.com'  # Add your domain if you have one
+    'app.uzinduziafrica.com',
+    'uztestbackend2-dv55.onrender.com' # Add your domain if you have one
 ]
 # -----------------------------
 # 📌 DJANGO REST FRAMEWORK
