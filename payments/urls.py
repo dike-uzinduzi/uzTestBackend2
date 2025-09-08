@@ -6,7 +6,10 @@ from .views import (
     PaymentReturnView,
     PaymentResultView,
     UserPaymentsView,
-    PaymentDetailView
+    PaymentDetailView,
+    CreateCashPaymentView,
+    UpdateCashPaymentStatusView,
+    CashPaymentDetailView,
 )
 
 urlpatterns = [
@@ -27,4 +30,8 @@ urlpatterns = [
     path('payments/create-payment/', CreateSeamlessPaymentView.as_view(), name='create-payment-legacy'),
     path('payments/initiate-payment/', InitiateRedirectPaymentView.as_view(), name='initiate-payment-legacy'),
     path('payments/check-payment-status/<str:reference_number>/', CheckPaymentStatusView.as_view(), name='check-payment-status-legacy'),
+      # Cash payment endpoints
+    path('payments/cash/', CreateCashPaymentView.as_view(), name='create-cash-payment'),
+    path('payments/cash/<uuid:payment_id>/status/', UpdateCashPaymentStatusView.as_view(), name='update-cash-payment-status'),
+    path('payments/cash/<uuid:payment_id>/', CashPaymentDetailView.as_view(), name='cash-payment-detail'),
 ]

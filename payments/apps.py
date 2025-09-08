@@ -1,4 +1,6 @@
 from django.apps import AppConfig
+from django.utils.timezone import now
+from datetime import timedelta
 
 class PaymentsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
@@ -6,3 +8,4 @@ class PaymentsConfig(AppConfig):
 
     def ready(self):
         import payments.signals
+

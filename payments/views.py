@@ -15,8 +15,9 @@ from .models import Payment, PaymentLog
 from .serializers import PaymentSerializer
 from django.db import transaction
 from django.core.exceptions import ValidationError
-
+from django.utils import timezone
 logger = logging.getLogger(__name__)
+
 
 # Initialize Pesepay
 pesepay = Pesepay( settings.PESEPAY_ENCRYPTION_KEY,settings.PESEPAY_INTEGRATION_KEY,)
@@ -318,6 +319,7 @@ class InitiateRedirectPaymentView(APIView):
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class CheckPaymentStatusView(APIView):
     permission_classes = [AllowAny]  # Allow checking status without authentication
     
@@ -327,25 +329,60 @@ class CheckPaymentStatusView(APIView):
             # Get payment record from database
             payment_record = get_object_or_404(Payment, reference_number=reference_number)
             
-            # Check with Pesepay
+            # Define final statuses that don't need further checking
+            FINAL_STATUSES = [
+                'AUTHORIZATION_FAILED', 'CANCELLED', 'CLOSED', 'CLOSED_PERIOD_ELAPSED',
+                'DECLINED', 'ERROR', 'FAILED', 'INSUFFICIENT_FUNDS', 'REVERSED',
+                'SERVICE_UNAVAILABLE', 'SUCCESS', 'TERMINATED', 'TIME_OUT',
+                'COLLECTED', 'DELIVERED'
+            ]
+            
+            # For cash payments or payments with final status, return stored status
+            if not payment_record.is_pesepay_payment() or payment_record.status in FINAL_STATUSES:
+                # Determine if payment is paid based on status
+                is_paid = payment_record.status == 'SUCCESS'
+                
+                return Response({
+                    'success': True,
+                    'paid': is_paid,
+                    'status': payment_record.status,
+                    'is_final_status': payment_record.status in FINAL_STATUSES,
+                    'payment_details': {
+                        'id': str(payment_record.id),
+                        'amount': str(payment_record.amount),
+                        'currency': payment_record.currency,
+                        'payment_reason': payment_record.payment_reason,
+                        'customer_email': payment_record.customer_email,
+                        'created_at': payment_record.created_at.isoformat(),
+                        'album_title': payment_record.album_title,
+                        'artist_name': payment_record.artist_name,
+                        'plaque_type': payment_record.plaque_type,
+                    }
+                }, status=status.HTTP_200_OK)
+            
+            # For PesePay payments with non-final status, check with PesePay
             response = pesepay.check_payment(reference_number)
             
             # Log status check
             PaymentLog.objects.create(
                 payment=payment_record,
                 event_type='STATUS_CHECK',
-                message='Payment status checked',
+                message='Payment status checked with PesePay',
                 data={
                     'pesepay_success': response.success,
+                    'pesepay_status': getattr(response, 'status', 'UNKNOWN'),
                     'pesepay_paid': getattr(response, 'paid', False),
                     'pesepay_message': getattr(response, 'message', '')
                 }
             )
             
             if response.success:
-                # Update payment status if it changed
-                if response.paid and payment_record.status != 'COMPLETED':
-                    payment_record.mark_as_completed()
+                # Update payment record with PesePay response
+                payment_record.update_from_pesepay_response(response)
+                
+                # If payment is successful, mark as completed
+                if getattr(response, 'paid', False) and payment_record.status == 'SUCCESS':
+                    payment_record.mark_as_success()
                     
                     # Log completion
                     PaymentLog.objects.create(
@@ -355,10 +392,14 @@ class CheckPaymentStatusView(APIView):
                         data={'completed_at': payment_record.completed_at.isoformat()}
                     )
                 
+                # Determine if payment is paid based on status
+                is_paid = payment_record.status == 'SUCCESS'
+                
                 return Response({
                     'success': True,
-                    'paid': response.paid,
-                    'status': 'Paid' if response.paid else 'Unpaid',
+                    'paid': is_paid,
+                    'status': payment_record.status,
+                    'is_final_status': payment_record.status in FINAL_STATUSES,
                     'payment_details': {
                         'id': str(payment_record.id),
                         'amount': str(payment_record.amount),
@@ -372,9 +413,24 @@ class CheckPaymentStatusView(APIView):
                     }
                 }, status=status.HTTP_200_OK)
             else:
+                # Even if the PesePay API call failed, return the current status
                 return Response({
                     'success': False,
-                    'message': response.message
+                    'message': response.message,
+                    'paid': False,
+                    'status': payment_record.status,
+                    'is_final_status': payment_record.status in FINAL_STATUSES,
+                    'payment_details': {
+                        'id': str(payment_record.id),
+                        'amount': str(payment_record.amount),
+                        'currency': payment_record.currency,
+                        'payment_reason': payment_record.payment_reason,
+                        'customer_email': payment_record.customer_email,
+                        'created_at': payment_record.created_at.isoformat(),
+                        'album_title': payment_record.album_title,
+                        'artist_name': payment_record.artist_name,
+                        'plaque_type': payment_record.plaque_type,
+                    }
                 }, status=status.HTTP_400_BAD_REQUEST)
                 
         except Payment.DoesNotExist:
@@ -525,3 +581,221 @@ class PaymentDetailView(APIView):
                 'success': False,
                 'message': 'Payment not found'
             }, status=status.HTTP_404_NOT_FOUND)
+
+class CreateCashPaymentView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        """Create a cash payment record"""
+        data = request.data
+        user = request.user
+        
+        try:
+            with transaction.atomic():
+                # Validate required fields for cash payments
+                required_fields = ['amount', 'currency', 'customer_email', 'customer_name', 'customer_address']
+                for field in required_fields:
+                    if field not in data or not data[field]:
+                        return Response({
+                            'success': False,
+                            'message': f'Missing required field: {field}'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                
+                # Create payment record
+                payment_record = Payment.objects.create(
+                     # No reference number for cash payments
+                    user=user,
+                    reference_number=f"CASH-{payment_record.id}",
+                    amount=data.get('amount'),
+                    currency=data.get('currency_code'),
+                    payment_method='CASH001',  # Special code for cash payments
+                    payment_reason=data.get('payment_reason', 'Album Support'),
+                    customer_email=data.get('email', user.email),
+                    customerPhoneNumber=data.get('customer_phone', ''),
+                    customer_name=data.get('customer_name', ''),
+                    payment_type='CASH',
+                    status='PENDING',  # Cash payments start as pending until collected
+                    required_fields={
+                        'address': data.get('customer_address', ''),
+                        'phone': data.get('customer_phone', ''),
+                        'agreed_terms': data.get('agree_terms', False),
+                        'terms_accepted_at': timezone.now().isoformat()
+                    },
+                    # Support-specific fields
+                    album_title=data.get('album_title'),
+                    artist_name=data.get('artist_name'),
+                    plaque_type=data.get('plaque_type'),
+                )
+                
+                # Log payment creation
+                PaymentLog.objects.create(
+                    payment=payment_record,
+                    event_type='CASH_PAYMENT_CREATED',
+                    message='Cash payment record created',
+                    data={
+                        'customer_name': data.get('customer_name'),
+                        'customer_address': data.get('customer_address'),
+                        'customer_phone': data.get('customer_phone'),
+                        'amount': data.get('amount'),
+                        'currency': data.get('currency')
+                    }
+                )
+                
+                # In a real implementation, you might:
+                # 1. Send a confirmation email to the customer
+                # 2. Send a notification to admin about the cash payment
+                # 3. Schedule delivery or pickup
+                
+                # For now, we'll simulate these actions with logs
+                logger.info(f"Cash payment created: {payment_record.id}")
+                logger.info(f"Customer: {data.get('customer_name')}")
+                logger.info(f"Address: {data.get('customer_address')}")
+                logger.info(f"Amount: {data.get('amount')} {data.get('currency')}")
+                
+                return Response({
+                    'success': True,
+                    'payment_id': str(payment_record.id),
+                    'reference_number': payment_record.reference_number,
+                    'message': 'Cash payment recorded successfully. We will contact you to arrange delivery and payment collection.',
+                    'payment_details': {
+                        'amount': str(payment_record.amount),
+                        'currency': payment_record.currency,
+                        'customer_name': payment_record.customer_name,
+                        'customer_email': payment_record.customer_email,
+                        'customer_phone': payment_record.customerPhoneNumber,
+                        'customer_address': payment_record.required_fields.get('address', ''),
+                        'estimated_delivery': payment_record.get_estimated_delivery()
+                    }
+                }, status=status.HTTP_201_CREATED)
+                  
+        except Exception as e:
+            logger.exception("Error in CreateCashPaymentView")
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class UpdateCashPaymentStatusView(APIView):
+    """Update the status of a cash payment (for admin use)"""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, payment_id):
+        """Update cash payment status (e.g., mark as collected, delivered, etc.)"""
+        try:
+            payment = get_object_or_404(Payment, id=payment_id, payment_method='CASH001')
+            
+            # Only allow admins or the payment owner to update status
+            if not (request.user.is_staff or payment.user == request.user):
+                return Response({
+                    'success': False,
+                    'message': 'Permission denied'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            new_status = request.data.get('status')
+            notes = request.data.get('notes', '')
+            
+            if new_status not in ['PENDING', 'COLLECTED', 'DELIVERED', 'COMPLETED', 'FAILED']:
+                return Response({
+                    'success': False,
+                    'message': 'Invalid status'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Update payment status
+            old_status = payment.status
+            payment.status = new_status
+            
+            # Add status change to required_fields
+            status_history = payment.required_fields.get('status_history', [])
+            status_history.append({
+                'old_status': old_status,
+                'new_status': new_status,
+                'changed_by': request.user.email,
+                'changed_at': timezone.now().isoformat(),
+                'notes': notes
+            })
+            
+            payment.required_fields['status_history'] = status_history
+            
+            # If marking as completed, set completed_at
+            if new_status == 'COMPLETED' and not payment.completed_at:
+                payment.completed_at = timezone.now()
+            
+            payment.save()
+            
+            # Log status change
+            PaymentLog.objects.create(
+                payment=payment,
+                event_type='CASH_STATUS_UPDATE',
+                message=f'Cash payment status changed from {old_status} to {new_status}',
+                data={
+                    'old_status': old_status,
+                    'new_status': new_status,
+                    'changed_by': request.user.email,
+                    'notes': notes
+                }
+            )
+            
+            return Response({
+                'success': True,
+                'message': f'Payment status updated to {new_status}',
+                'payment_id': str(payment.id),
+                'status': payment.status
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.exception("Error in UpdateCashPaymentStatusView")
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CashPaymentDetailView(APIView):
+    """Get details of a cash payment"""
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, payment_id):
+        """Get cash payment details"""
+        try:
+            payment = get_object_or_404(Payment, id=payment_id, payment_method='CASH001')
+            
+            # Only allow admins or the payment owner to view details
+            if not (request.user.is_staff or payment.user == request.user):
+                return Response({
+                    'success': False,
+                    'message': 'Permission denied'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Format response with cash-specific details
+            response_data = {
+                'id': str(payment.id),
+                'reference_number': f"CASH-{payment.id}",
+                'amount': str(payment.amount),
+                'currency': payment.currency,
+                'status': payment.status,
+                'customer_name': payment.customer_name,
+                'customer_email': payment.customer_email,
+                'customer_phone': payment.customerPhoneNumber,
+                'customer_address': payment.required_fields.get('address', ''),
+                'payment_reason': payment.payment_reason,
+                'created_at': payment.created_at.isoformat(),
+                'completed_at': payment.completed_at.isoformat() if payment.completed_at else None,
+                'album_title': payment.album_title,
+                'artist_name': payment.artist_name,
+                'plaque_type': payment.plaque_type,
+                'estimated_delivery': payment.get_estimated_delivery(),
+                'status_history': payment.required_fields.get('status_history', [])
+            }
+            
+            return Response({
+                'success': True,
+                'payment': response_data
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.exception("Error in CashPaymentDetailView")
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
