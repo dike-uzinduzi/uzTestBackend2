@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from decouple import config
+import dj_database_url
 
 # -----------------------------
 # 📌 PATHS & CORE CONFIG
@@ -10,17 +11,10 @@ ROOT_URLCONF = 'backend.urls'
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 SECRET_KEY = config('SECRET_KEY')
-DEBUG =False
+DEBUG = config('DEBUG', 'False').lower() == 'true'
 # api/settings.py
+ALLOWED_HOSTS = ['uztestbackend2.onrender.com','localhost','127.0.0.1']
 
-ALLOWED_HOSTS = [
-    'uztestbackend2.onrender.com', 
-    'localhost', 
-    '127.0.0.1',           # Remove :8000
-    '13.62.103.253',       # Add your server IP
-    'app.uzinduziafrica.com',
-    'uztestbackend2-dv55.onrender.com' # Add your domain if you have one
-]
 # -----------------------------
 # 📌 DJANGO REST FRAMEWORK
 # -----------------------------
@@ -32,17 +26,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated'
     ]
 }
-# SSL/HTTPS settings
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Static and media files
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # -----------------------------
 # 📌 INSTALLED APPS
 # -----------------------------
@@ -66,6 +50,7 @@ INSTALLED_APPS = [
     'users',
     'albums',
     'payments',
+
 ]
 
 # -----------------------------
@@ -127,21 +112,44 @@ TEMPLATES = [
 #     }
 # }
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django_tidb',
-        'NAME': 'uzi_db',
-        'USER': '2Fw9y2EzJRmW7fo.root',
-        'PASSWORD': 'U4lrtfDJ6SnipwZE',
-        'HOST': 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
-        'PORT': 4000,
-        'OPTIONS': {
-            'ssl_mode': 'VERIFY_IDENTITY',
-            'ssl': {'ca': 'isrgrootx1.pem'}
-        }
-    },
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django_tidb',
+#         'NAME': 'uzi_db',
+#         'USER': '2Fw9y2EzJRmW7fo.root',
+#         'PASSWORD': 'U4lrtfDJ6SnipwZE',
+#         'HOST': 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
+#         'PORT': 4000,
+#         'OPTIONS': {
+#             'ssl_mode': 'VERIFY_IDENTITY',
+#             'ssl': {'ca': 'isrgrootx1.pem'}
+#         }
+#     },
+# }
 
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'uzinduzi_db',
+#         'USER': 'root',
+#         'PASSWORD': 'Z4eXkxrvojGuqQkTcp22jieR0vqSoUk3',
+#         'HOST': 'postgresql://root:Z4eXkxrvojGuqQkTcp22jieR0vqSoUk3@dpg-d2vdaqbipnbc73cipf6g-a.oregon-postgres.render.com/uzinduzi_db',
+#         'PORT': 5432,
+#         'OPTIONS': {
+#             'ssl_mode': 'VERIFY_IDENTITY',
+#             # 'ssl': {'ca': 'isrgrootx1.pem'}
+#         }
+#     },
+# }
+
+# DATABASES ["default"] = dj_database_url.parse("postgres://prettyprinted_django_render_user: YicEatZPvYzkF0fCq4)
+DATABASES = {
+        'default': dj_database_url.config(
+            default='postgresql://root:Z4eXkxrvojGuqQkTcp22jieR0vqSoUk3@dpg-d2vdaqbipnbc73cipf6g-a/uzinduzi_db',  # Use DATABASE_URL environment variable
+            conn_max_age=600  # Optional: set connection max age
+        )
+    }
 # -----------------------------
 # 📌 PASSWORD VALIDATORS
 # -----------------------------
@@ -255,3 +263,8 @@ SITE_NAME = 'Uzinduzi Africa'
 # 📌 DEFAULT PK FIELD
 # -----------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# -----------------------------
+
+ADMINS = [
+    ('Admin', 'dike@uzinduziafrica.com'),
+]
