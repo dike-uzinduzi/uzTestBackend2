@@ -11,10 +11,17 @@ ROOT_URLCONF = 'backend.urls'
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', 'False').lower() == 'true'
+DEBUG =False
 # api/settings.py
-ALLOWED_HOSTS = ['uztestbackend2.onrender.com','localhost','127.0.0.1']
 
+ALLOWED_HOSTS = [
+    'uztestbackend2.onrender.com', 
+    'localhost', 
+    '127.0.0.1',           # Remove :8000
+    '13.62.103.253',       # Add your server IP
+    'app.uzinduziafrica.com',
+    'uztestbackend2-dv55.onrender.com' # Add your domain if you have one
+]
 # -----------------------------
 # 📌 DJANGO REST FRAMEWORK
 # -----------------------------
@@ -26,7 +33,17 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated'
     ]
 }
+# SSL/HTTPS settings
+SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# Static and media files
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # -----------------------------
 # 📌 INSTALLED APPS
 # -----------------------------
