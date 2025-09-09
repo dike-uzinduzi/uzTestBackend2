@@ -112,20 +112,20 @@ TEMPLATES = [
 #     }
 # }
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django_tidb',
-#         'NAME': 'uzi_db',
-#         'USER': '2Fw9y2EzJRmW7fo.root',
-#         'PASSWORD': 'U4lrtfDJ6SnipwZE',
-#         'HOST': 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
-#         'PORT': 4000,
-#         'OPTIONS': {
-#             'ssl_mode': 'VERIFY_IDENTITY',
-#             'ssl': {'ca': 'isrgrootx1.pem'}
-#         }
-#     },
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django_tidb',
+        'NAME': 'uzi_db',
+        'USER': '2Fw9y2EzJRmW7fo.root',
+        'PASSWORD': 'U4lrtfDJ6SnipwZE',
+        'HOST': 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
+        'PORT': 4000,
+        'OPTIONS': {
+            'ssl_mode': 'VERIFY_IDENTITY',
+            'ssl': {'ca': 'isrgrootx1.pem'}
+        }
+    },
+}
 
 
 # DATABASES = {
@@ -144,12 +144,12 @@ TEMPLATES = [
 # }
 
 # DATABASES ["default"] = dj_database_url.parse("postgres://prettyprinted_django_render_user: YicEatZPvYzkF0fCq4)
-DATABASES = {
-        'default': dj_database_url.config(
-            default=config('DATABASE_URL'),  # Use DATABASE_URL environment variable
-            conn_max_age=600  # Optional: set connection max age
-        )
-    }
+# DATABASES = {
+#         'default': dj_database_url.config(
+#             default=config('DATABASE_URL'),  # Use DATABASE_URL environment variable
+#             conn_max_age=600  # Optional: set connection max age
+#         )
+#     }
 # -----------------------------
 # 📌 PASSWORD VALIDATORS
 # -----------------------------
@@ -263,3 +263,8 @@ SITE_NAME = 'Uzinduzi Africa'
 # 📌 DEFAULT PK FIELD
 # -----------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# -----------------------------
+
+ADMINS = [
+    ('Admin', 'dike@uzinduziafrica.com'),
+]

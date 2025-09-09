@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Payment, PaymentLog
+from .models import *
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
@@ -124,3 +124,10 @@ class PaymentLogAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('payment')
+    
+    
+@admin.register(ToBeVerifiedPayment)
+class ToBeVerifiedPaymentAdmin(admin.ModelAdmin):
+    list_display = ('payment', 'reason', 'created_at')
+    list_filter = ('created_at',)
+    search_fields = ('payment__reference_number', 'reason')

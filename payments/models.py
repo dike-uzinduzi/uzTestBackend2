@@ -2,6 +2,10 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 import uuid
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Payment(models.Model):
     # PesePay payment method choices
@@ -224,42 +228,76 @@ class Payment(models.Model):
         return self.payment_method != 'CASH001'
     
     def update_from_pesepay_response(self, pesepay_response):
-        """Update payment record based on PesePay API response"""
-        if hasattr(pesepay_response, 'referenceNumber'):
-            self.reference_number = pesepay_response.referenceNumber
-        
-        if hasattr(pesepay_response, 'transactionId'):
-            self.pesepay_transaction_id = pesepay_response.transactionId
-        
-        if hasattr(pesepay_response, 'merchantReference'):
-            self.pesepay_merchant_reference = pesepay_response.merchantReference
-        
-        if hasattr(pesepay_response, 'pollUrl'):
-            self.poll_url = pesepay_response.pollUrl
-        
-        if hasattr(pesepay_response, 'redirectUrl'):
-            self.redirect_url = pesepay_response.redirectUrl
-        
-        # Map PesePay status to our status field
-        if hasattr(pesepay_response, 'status'):
-            # Convert to uppercase and replace spaces with underscores to match our choices
-            pesepay_status = getattr(pesepay_response, 'status', '').upper().replace(' ', '_')
-            
-            # Check if the status is valid
-            valid_statuses = [choice[0] for choice in self.PAYMENT_STATUS_CHOICES]
-            if pesepay_status in valid_statuses:
-                self.status = pesepay_status
-            else:
-                self.status = 'UNKNOWN'
-                # Log the unknown status for debugging
-                PaymentLog.objects.create(
-                    payment=self,
-                    event_type='UNKNOWN_STATUS',
-                    message=f'Received unknown status from PesePay: {pesepay_status}',
-                    data={'pesepay_response': str(pesepay_response)}
-                )
-        
+        """
+          Update payment record based on Pesepay API response.
+          Accepts either:
+              - A Pesepay object with attributes (referenceNumber, status, paid)
+              - OR a decrypted payload dict from check-payment API
+        """
+        if isinstance(pesepay_response, dict):
+            payload = pesepay_response
+            pesepay_status = payload.get('status', '').upper().strip()
+            reference_number = payload.get('referenceNumber', self.reference_number)
+            transaction_id = payload.get('transactionId', self.pesepay_transaction_id)
+            merchant_reference = payload.get('merchantReference', self.pesepay_merchant_reference)
+            paid = payload.get('paid', False)
+        else:
+            # Wrapper object
+            payload = None
+            pesepay_status = str(getattr(pesepay_response, 'status', '')).upper().strip()
+            reference_number = getattr(pesepay_response, 'referenceNumber', self.reference_number)
+            transaction_id = getattr(pesepay_response, 'transactionId', self.pesepay_transaction_id)
+            merchant_reference = getattr(pesepay_response, 'merchantReference', self.pesepay_merchant_reference)
+            paid = getattr(pesepay_response, 'paid', False)
+
+        old_status = self.status
+        valid_statuses = [choice[0] for choice in self.PAYMENT_STATUS_CHOICES]
+
+    # Update IDs & URLs
+        self.reference_number = reference_number
+        self.pesepay_transaction_id = transaction_id
+        self.pesepay_merchant_reference = merchant_reference
+        self.poll_url = getattr(pesepay_response, 'pollUrl', self.poll_url)
+        self.redirect_url = getattr(pesepay_response, 'redirectUrl', self.redirect_url)
+
+    # Normalize status
+        if pesepay_status in valid_statuses:
+            self.status = pesepay_status
+        else:
+          self.status = 'ERROR'
+          PaymentLog.objects.create(
+            payment=self,
+            event_type='UNKNOWN_STATUS',
+            message=f"Received unknown status from PesePay: {pesepay_status}",
+            data={'pesepay_response': str(pesepay_response)}
+        )
+
+    # Handle success/failure timestamps
+        if self.status == 'SUCCESS':
+            self.completed_at = timezone.now()
+        elif self.status in [
+           'FAILED', 'CANCELLED', 'TIME_OUT', 'DECLINED', 'AUTHORIZATION_FAILED',
+           'CLOSED', 'CLOSED_PERIOD_ELAPSED', 'INSUFFICIENT_FUNDS',
+           'ERROR', 'TERMINATED'
+      ]:
+          self.completed_at = None
+
+    # Auto-assign plaque if needed
+        if not self.plaque_type or not self.validate_plaque_type():
+           self.auto_assign_plaque_type()
+
         self.save()
+
+    # Log status change
+        if old_status != self.status:
+             PaymentLog.objects.create(
+               payment=self,
+                event_type='STATUS_UPDATE',
+                message=f"Status changed from {old_status} → {self.status}",
+               data={'pesepay_response': str(pesepay_response)}
+        )
+
+        print(f"✅ Payment {self.id} updated to status {self.status}")
 
     def save(self, *args, **kwargs):
         """Override save to auto-assign plaque type if not set"""
@@ -282,3 +320,15 @@ class PaymentLog(models.Model):
     def __str__(self):
         ref = self.payment.reference_number or f"Payment-{str(self.payment.id)[:8]}"
         return f"{ref} - {self.event_type} at {self.timestamp}"
+    
+class ToBeVerifiedPayment(models.Model):
+    payment = models.OneToOneField(
+        'Payment',
+        on_delete=models.CASCADE,
+        related_name='to_be_verified'
+    )
+    reason = models.CharField(max_length=255, default='Payment timeout')
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"ToBeVerifiedPayment: {self.payment.reference_number}"

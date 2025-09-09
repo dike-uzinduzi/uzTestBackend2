@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Payment, PaymentLog
+from .models import Payment, PaymentLog, ToBeVerifiedPayment
 
 class PaymentSerializer(serializers.ModelSerializer):
     user_email = serializers.CharField(source='user.email', read_only=True)
@@ -18,3 +18,8 @@ class PaymentLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = PaymentLog
         fields = ['event_type', 'message', 'data', 'timestamp']
+
+class ToBeVerifiedPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ToBeVerifiedPayment
+        fields = ['id', 'payment', 'reason', 'created_at']
