@@ -150,6 +150,7 @@ DATABASES = {
             conn_max_age=600  # Optional: set connection max age
         )
     }
+# postgresql://root:Z4eXkxrvojGuqQkTcp22jieR0vqSoUk3@dpg-d2vdaqbipnbc73cipf6g-a.oregon-postgres.render.com/uzinduzi_db
 # -----------------------------
 # 📌 PASSWORD VALIDATORS
 # -----------------------------
@@ -197,7 +198,8 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     "https://uztestbackend2.onrender.com",
-    "https://www.uztestbackend2.onrender.com"  
+    "https://www.uztestbackend2.onrender.com" ,
+    "https://uztestbackend2-dv55.onrender.com",
 ]
 
 # -----------------------------
