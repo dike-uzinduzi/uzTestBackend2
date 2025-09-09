@@ -2,16 +2,13 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 import uuid
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Payment(models.Model):
-    PAYMENT_STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
-        ('COMPLETED', 'Completed'),
-        ('FAILED', 'Failed'),
-        ('CANCELLED', 'Cancelled'),
-    ]
-    
-    # Updated payment method choices - only ZiG and USD methods
+    # PesePay payment method choices
     PAYMENT_METHOD_CHOICES = [
         # USD Payment Methods
         ('PZW204', 'Visa'),
@@ -19,9 +16,35 @@ class Payment(models.Model):
         # ZiG Payment Methods
         ('PZW201', 'EcoCash ZiG'),
         ('PZW210', 'PayGo ZiG'),
+        # Cash Payment Method (not part of PesePay)
+        ('CASH001', 'Cash Collection'),
     ]
 
-    # Currency choices - only USD and ZiG
+    # Exact PesePay transaction statuses
+    PAYMENT_STATUS_CHOICES = [
+        ('AUTHORIZATION_FAILED', 'Authorization Failed'),
+        ('CANCELLED', 'Cancelled'),
+        ('CLOSED', 'Closed'),
+        ('CLOSED_PERIOD_ELAPSED', 'Closed - Period Elapsed'),
+        ('DECLINED', 'Declined'),
+        ('ERROR', 'Error'),
+        ('FAILED', 'Failed'),
+        ('INITIATED', 'Initiated'),
+        ('INSUFFICIENT_FUNDS', 'Insufficient Funds'),
+        ('PARTIALLY_PAID', 'Partially Paid'),
+        ('PENDING', 'Pending'),
+        ('PROCESSING', 'Processing'),
+        ('REVERSED', 'Reversed'),
+        ('SERVICE_UNAVAILABLE', 'Service Unavailable'),
+        ('SUCCESS', 'Success'),
+        ('TERMINATED', 'Terminated'),
+        ('TIME_OUT', 'Time Out'),
+        # Additional statuses for cash payments (not part of PesePay)
+        ('COLLECTED', 'Cash Collected'),
+        ('DELIVERED', 'Delivered'),
+    ]
+
+    # Currency choices
     CURRENCY_CHOICES = [
         ('USD', 'US Dollar'),
         ('ZiG', 'Zimbabwe Dollar'),
@@ -55,12 +78,16 @@ class Payment(models.Model):
     customer_name = models.CharField(max_length=100, blank=True, null=True)
     
     # Payment status and tracking
-    status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='PENDING')
+    status = models.CharField(max_length=25, choices=PAYMENT_STATUS_CHOICES, default='INITIATED')
     poll_url = models.URLField(blank=True, null=True)
     redirect_url = models.URLField(blank=True, null=True)
     
+    # PesePay-specific fields
+    pesepay_transaction_id = models.CharField(max_length=255, blank=True, null=True)
+    pesepay_merchant_reference = models.CharField(max_length=255, blank=True, null=True)
+    
     # Additional metadata
-    payment_type = models.CharField(max_length=20, choices=[('SEAMLESS', 'Seamless'), ('REDIRECT', 'Redirect')])
+    payment_type = models.CharField(max_length=20, choices=[('SEAMLESS', 'Seamless'), ('REDIRECT', 'Redirect'), ('CASH', 'Cash')])
     required_fields = models.JSONField(default=dict, blank=True)
     
     # Timestamps
@@ -82,6 +109,8 @@ class Payment(models.Model):
             models.Index(fields=['currency']),
             models.Index(fields=['payment_method']),
             models.Index(fields=['plaque_type']),
+            models.Index(fields=['pesepay_transaction_id']),
+            models.Index(fields=['pesepay_merchant_reference']),
         ]
 
     def __str__(self):
@@ -95,6 +124,7 @@ class Payment(models.Model):
             'PZW211': 'EcoCash USD',
             'PZW201': 'EcoCash ZiG',
             'PZW210': 'PayGo ZiG',
+            'CASH001': 'Cash Collection',
         }
         return method_names.get(self.payment_method, self.payment_method)
     
@@ -167,9 +197,9 @@ class Payment(models.Model):
         }
         return delivery_times.get(self.plaque_type, '2-3 weeks')
     
-    def mark_as_completed(self):
-        """Mark payment as completed and set completion timestamp"""
-        self.status = 'COMPLETED'
+    def mark_as_success(self):
+        """Mark payment as successful (PesePay SUCCESS status)"""
+        self.status = 'SUCCESS'
         self.completed_at = timezone.now()
         
         # Auto-assign plaque type if not set or incorrect
@@ -179,15 +209,102 @@ class Payment(models.Model):
         self.save(update_fields=['status', 'completed_at', 'plaque_type', 'updated_at'])
     
     def mark_as_failed(self):
-        """Mark payment as failed"""
+        """Mark payment as failed (PesePay FAILED status)"""
         self.status = 'FAILED'
         self.save(update_fields=['status', 'updated_at'])
+    
+    def mark_as_cancelled(self):
+        """Mark payment as cancelled (PesePay CANCELLED status)"""
+        self.status = 'CANCELLED'
+        self.save(update_fields=['status', 'updated_at'])
+    
+    def mark_as_pending(self):
+        """Mark payment as pending (PesePay PENDING status)"""
+        self.status = 'PENDING'
+        self.save(update_fields=['status', 'updated_at'])
+    
+    def is_pesepay_payment(self):
+        """Check if this is a PesePay payment (not cash)"""
+        return self.payment_method != 'CASH001'
+    
+    def update_from_pesepay_response(self, pesepay_response):
+        """
+          Update payment record based on Pesepay API response.
+          Accepts either:
+              - A Pesepay object with attributes (referenceNumber, status, paid)
+              - OR a decrypted payload dict from check-payment API
+        """
+        if isinstance(pesepay_response, dict):
+            payload = pesepay_response
+            pesepay_status = payload.get('status', '').upper().strip()
+            reference_number = payload.get('referenceNumber', self.reference_number)
+            transaction_id = payload.get('transactionId', self.pesepay_transaction_id)
+            merchant_reference = payload.get('merchantReference', self.pesepay_merchant_reference)
+            paid = payload.get('paid', False)
+        else:
+            # Wrapper object
+            payload = None
+            pesepay_status = str(getattr(pesepay_response, 'status', '')).upper().strip()
+            reference_number = getattr(pesepay_response, 'referenceNumber', self.reference_number)
+            transaction_id = getattr(pesepay_response, 'transactionId', self.pesepay_transaction_id)
+            merchant_reference = getattr(pesepay_response, 'merchantReference', self.pesepay_merchant_reference)
+            paid = getattr(pesepay_response, 'paid', False)
+
+        old_status = self.status
+        valid_statuses = [choice[0] for choice in self.PAYMENT_STATUS_CHOICES]
+
+    # Update IDs & URLs
+        self.reference_number = reference_number
+        self.pesepay_transaction_id = transaction_id
+        self.pesepay_merchant_reference = merchant_reference
+        self.poll_url = getattr(pesepay_response, 'pollUrl', self.poll_url)
+        self.redirect_url = getattr(pesepay_response, 'redirectUrl', self.redirect_url)
+
+    # Normalize status
+        if pesepay_status in valid_statuses:
+            self.status = pesepay_status
+        else:
+          self.status = 'ERROR'
+          PaymentLog.objects.create(
+            payment=self,
+            event_type='UNKNOWN_STATUS',
+            message=f"Received unknown status from PesePay: {pesepay_status}",
+            data={'pesepay_response': str(pesepay_response)}
+        )
+
+    # Handle success/failure timestamps
+        if self.status == 'SUCCESS':
+            self.completed_at = timezone.now()
+        elif self.status in [
+           'FAILED', 'CANCELLED', 'TIME_OUT', 'DECLINED', 'AUTHORIZATION_FAILED',
+           'CLOSED', 'CLOSED_PERIOD_ELAPSED', 'INSUFFICIENT_FUNDS',
+           'ERROR', 'TERMINATED'
+      ]:
+          self.completed_at = None
+
+    # Auto-assign plaque if needed
+        if not self.plaque_type or not self.validate_plaque_type():
+           self.auto_assign_plaque_type()
+
+        self.save()
+
+    # Log status change
+        if old_status != self.status:
+             PaymentLog.objects.create(
+               payment=self,
+                event_type='STATUS_UPDATE',
+                message=f"Status changed from {old_status} → {self.status}",
+               data={'pesepay_response': str(pesepay_response)}
+        )
+
+        print(f"✅ Payment {self.id} updated to status {self.status}")
 
     def save(self, *args, **kwargs):
         """Override save to auto-assign plaque type if not set"""
         if self.amount and not self.plaque_type:
             self.auto_assign_plaque_type()
         super().save(*args, **kwargs)
+
 
 class PaymentLog(models.Model):
     """Log all payment-related events for debugging and audit trail"""
@@ -203,3 +320,15 @@ class PaymentLog(models.Model):
     def __str__(self):
         ref = self.payment.reference_number or f"Payment-{str(self.payment.id)[:8]}"
         return f"{ref} - {self.event_type} at {self.timestamp}"
+    
+class ToBeVerifiedPayment(models.Model):
+    payment = models.OneToOneField(
+        'Payment',
+        on_delete=models.CASCADE,
+        related_name='to_be_verified'
+    )
+    reason = models.CharField(max_length=255, default='Payment timeout')
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"ToBeVerifiedPayment: {self.payment.reference_number}"
