@@ -117,7 +117,7 @@ TEMPLATES = [
 #         'ENGINE': 'django_tidb',
 #         'NAME': 'uzi_db',
 #         'USER': '2Fw9y2EzJRmW7fo.root',
-#         'PASSWORD': 'U4lrtfDJ6SnipwZE',
+#         'PASSWORD': '',
 #         'HOST': 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
 #         'PORT': 4000,
 #         'OPTIONS': {
@@ -146,7 +146,7 @@ TEMPLATES = [
 # DATABASES ["default"] = dj_database_url.parse("postgres://prettyprinted_django_render_user: YicEatZPvYzkF0fCq4)
 DATABASES = {
         'default': dj_database_url.config(
-            default='postgresql://root:Z4eXkxrvojGuqQkTcp22jieR0vqSoUk3@dpg-d2vdaqbipnbc73cipf6g-a/uzinduzi_db',  # Use DATABASE_URL environment variable
+            default='postgresql://root:Z4eXkxrvojGuqQkTcp22jieR0vqSoUk3@dpg-d2vdaqbipnbc73cipf6g-a.oregon-postgres.render.com/uzinduzi_db',  # Use DATABASE_URL environment variable
             conn_max_age=600  # Optional: set connection max age
         )
     }
