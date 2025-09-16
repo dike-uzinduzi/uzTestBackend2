@@ -347,11 +347,15 @@ class CheckPaymentStatusView(APIView):
         try:
             payment_record = get_object_or_404(Payment, reference_number=reference_number)
 
-            # If already final status, just return DB info
+            # 🟢 1. Handle Cash Payments — skip Pesepay
+            if str(reference_number).startswith("CASH-"):
+                return self._build_response(payment_record)
+
+            # 🟡 2. If already in final status, just return DB info
             if payment_record.status in self.FINAL_STATUSES:
                 return self._build_response(payment_record)
 
-            # Call Pesepay API directly
+            # 🔵 3. Otherwise, query PesePay for latest status
             url = "https://api.pesepay.com/api/payments-engine/v1/transactions/by-reference"
             headers = {
                 "authorization": settings.PESEPAY_INTEGRATION_KEY,
@@ -406,7 +410,7 @@ class CheckPaymentStatusView(APIView):
         """Helper to format the response consistently"""
         return Response({
             "success": True,
-            "paid": payment_record.status == "SUCCESS",
+            "paid": payment_record.status in ["SUCCESS", "CashRecorded", "COLLECTED"],  # support cash
             "status": payment_record.status,
             "is_final_status": payment_record.status in self.FINAL_STATUSES,
             "payment_details": {
@@ -421,6 +425,7 @@ class CheckPaymentStatusView(APIView):
                 "plaque_type": payment_record.plaque_type,
             },
         }, status=status.HTTP_200_OK)
+
 class PaymentReturnView(APIView):
     """Handle return from Pesepay payment page"""
     permission_classes = [AllowAny]
@@ -577,16 +582,14 @@ class CreateCashPaymentView(APIView):
                             'message': f'Missing required field: {field}'
                         }, status=status.HTTP_400_BAD_REQUEST)
                 
-                # Create payment record
+                # Create payment record first without reference number
                 payment_record = Payment.objects.create(
-                     # No reference number for cash payments
                     user=user,
-                    reference_number=f"CASH-{payment_record.id}",
                     amount=data.get('amount'),
-                    currency=data.get('currency_code'),
+                    currency=data.get('currency'),  # Changed from currency_code to currency
                     payment_method='CASH001',  # Special code for cash payments
                     payment_reason=data.get('payment_reason', 'Album Support'),
-                    customer_email=data.get('email', user.email),
+                    customer_email=data.get('customer_email', user.email),
                     customerPhoneNumber=data.get('customer_phone', ''),
                     customer_name=data.get('customer_name', ''),
                     payment_type='CASH',
@@ -602,6 +605,10 @@ class CreateCashPaymentView(APIView):
                     artist_name=data.get('artist_name'),
                     plaque_type=data.get('plaque_type'),
                 )
+                
+                # Now update the reference number with the ID
+                payment_record.reference_number = f"CASH-{payment_record.id}"
+                payment_record.save()
                 
                 # Log payment creation
                 PaymentLog.objects.create(
@@ -628,6 +635,9 @@ class CreateCashPaymentView(APIView):
                 logger.info(f"Address: {data.get('customer_address')}")
                 logger.info(f"Amount: {data.get('amount')} {data.get('currency')}")
                 
+                # Serialize the payment record if needed
+                # serializer = PaymentSerializer(payment_record)
+                
                 return Response({
                     'success': True,
                     'payment_id': str(payment_record.id),
@@ -640,7 +650,7 @@ class CreateCashPaymentView(APIView):
                         'customer_email': payment_record.customer_email,
                         'customer_phone': payment_record.customerPhoneNumber,
                         'customer_address': payment_record.required_fields.get('address', ''),
-                        'estimated_delivery': payment_record.get_estimated_delivery()
+                        'estimated_delivery': payment_record.get_estimated_delivery() if hasattr(payment_record, 'get_estimated_delivery') else 'N/A'
                     }
                 }, status=status.HTTP_201_CREATED)
                   
@@ -650,8 +660,6 @@ class CreateCashPaymentView(APIView):
                 'success': False,
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 class UpdateCashPaymentStatusView(APIView):
     """Update the status of a cash payment (for admin use)"""
     permission_classes = [IsAuthenticated]
