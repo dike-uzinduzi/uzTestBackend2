@@ -109,7 +109,7 @@ if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 DATABASES = {
     'default': dj_database_url.config(
-        default=config('DATABASE_URL'),#os.environ.get('DATABASE_URL'),
+        default='postgresql://root:Z4eXkxrvojGuqQkTcp22jieR0vqSoUk3@dpg-d2vdaqbipnbc73cipf6g-a/uzinduzi_db',#config('DATABASE_URL'),#os.environ.get('DATABASE_URL'),
         conn_max_age=600,
         ssl_require=True
     )
