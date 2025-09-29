@@ -12,8 +12,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', 'False').lower() == 'true'
-# api/settings.py
-ALLOWED_HOSTS = ['uztestbackend2.onrender.com','localhost','127.0.0.1','uztestbackend2-dv55.onrender.com']
+ALLOWED_HOSTS = ['uztestbackend2.onrender.com', 'localhost', '127.0.0.1', 'uztestbackend2-dv55.onrender.com']
 
 # -----------------------------
 # 📌 DJANGO REST FRAMEWORK
@@ -44,13 +43,14 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'whitenoise.runserver_nostatic',  # <-- ADDED for Whitenoise static file serving
     'django.contrib.staticfiles',
 
     # Local apps
-    'users',
-    'albums',
-    'payments',
-
+    'users.apps.UsersConfig',
+    'albums.apps.AlbumsConfig',
+    'payments.apps.PaymentsConfig',
+    'notifications.apps.NotificationsConfig',
 ]
 
 # -----------------------------
@@ -58,8 +58,9 @@ INSTALLED_APPS = [
 # -----------------------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # <-- ADDED for Whitenoise
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',  
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -89,68 +90,31 @@ TEMPLATES = [
 # -----------------------------
 # 📌 DATABASE CONFIG
 # -----------------------------
-# DB_ENGINE = config('ENGINE').strip()
-# DB_NAME = config('NAME')
-# DB_USER = config('USER')
-# DB_PASSWORD = config('PASSWORD')
-# DB_HOST = config('HOST')
-# DB_PORT = config('PORT')
-
-# print(f"🔥 ENGINE SET TO: '{DB_ENGINE}'")
-
+# <-- UPDATED for security and production readiness
+# This configuration relies solely on the DATABASE_URL environment variable
+# provided by your hosting service (e.g., Render).
 # DATABASES = {
 #     'default': {
-#         'ENGINE': DB_ENGINE,
-#         'NAME': DB_NAME,
-#         'USER': DB_USER,
-#         'PASSWORD': DB_PASSWORD,
-#         'HOST': DB_HOST,
-#         'PORT': DB_PORT,
-#         'OPTIONS': {
-#             'charset': 'utf8mb4',
-#         }
+#         'ENGINE': 'django.db.backends.postgresql',  # Specifies the database backend
+#         'NAME': 'uzi',                      # Name of the database
+#         'USER': 'postgres',                    # Username for database access
+#         'PASSWORD': 'pz42uN2BBV',                  # Password for the user
+#         'HOST': 'localhost',                       # Database host (e.g., 'localhost', 'db.example.com')
+#         'PORT': '5432',                            # Port the database is listening on
 #     }
 # }
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django_tidb',
-#         'NAME': 'uzi_db',
-#         'USER': '2Fw9y2EzJRmW7fo.root',
-#         'PASSWORD': '',
-#         'HOST': 'gateway01.eu-central-1.prod.aws.tidbcloud.com',
-#         'PORT': 4000,
-#         'OPTIONS': {
-#             'ssl_mode': 'VERIFY_IDENTITY',
-#             'ssl': {'ca': 'isrgrootx1.pem'}
-#         }
-#     },
-# }
-
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'uzinduzi_db',
-#         'USER': 'root',
-#         'PASSWORD': 'Z4eXkxrvojGuqQkTcp22jieR0vqSoUk3',
-#         'HOST': 'postgresql://root:Z4eXkxrvojGuqQkTcp22jieR0vqSoUk3@dpg-d2vdaqbipnbc73cipf6g-a.oregon-postgres.render.com/uzinduzi_db',
-#         'PORT': 5432,
-#         'OPTIONS': {
-#             'ssl_mode': 'VERIFY_IDENTITY',
-#             # 'ssl': {'ca': 'isrgrootx1.pem'}
-#         }
-#     },
-# }
-
-# DATABASES ["default"] = dj_database_url.parse("postgres://prettyprinted_django_render_user: YicEatZPvYzkF0fCq4)
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 DATABASES = {
-        'default': dj_database_url.config(
-            default='postgresql://root:Z4eXkxrvojGuqQkTcp22jieR0vqSoUk3@dpg-d2vdaqbipnbc73cipf6g-a.oregon-postgres.render.com/uzinduzi_db',  # Use DATABASE_URL environment variable
-            conn_max_age=600  # Optional: set connection max age
-        )
-    }
-# postgresql://root:Z4eXkxrvojGuqQkTcp22jieR0vqSoUk3@dpg-d2vdaqbipnbc73cipf6g-a.oregon-postgres.render.com/uzinduzi_db
+    'default': dj_database_url.config(
+        default=config('DATABASE_URL'),#os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True
+    )
+}
+
 # -----------------------------
 # 📌 PASSWORD VALIDATORS
 # -----------------------------
@@ -174,31 +138,34 @@ USE_TZ = True
 # -----------------------------
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'  # <-- ADDED for Whitenoise
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media/'
-
 
 # -----------------------------
 # 📌 AUTH
 # -----------------------------
 AUTH_USER_MODEL = 'users.UserAccount'
 AUTHENTICATION_BACKENDS = [
+    'users.backends.EmailOrUsernameBackend', 
     'django.contrib.auth.backends.ModelBackend',
-    
 ]
 
 # -----------------------------
 # 📌 CORS CONFIG
 # -----------------------------
+# The origin of your Angular app (e.g., http://localhost:4200) must be in this list.
 CORS_ALLOWED_ORIGINS = [
-    "https://app.uzinduziafrica.com",
     "http://localhost:4200",
+    "https://app.uzinduziafrica.com",
 ]
+
+# This MUST be set to True to allow the browser to send cookies.
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
-    "https://uztestbackend2.onrender.com",
-    "https://www.uztestbackend2.onrender.com" ,
+    # "https://uztestbackend2.onrender.com",
+    # "https://www.uztestbackend2.onrender.com",
     "https://uztestbackend2-dv55.onrender.com",
 ]
 
@@ -212,12 +179,10 @@ AUTH_COOKIE_HTTP_ONLY = True
 AUTH_COOKIE_PATH = '/'
 AUTH_COOKIE_SAMESITE = 'None'
 
-
 # -----------------------------
-# 📌 EMAIL CONFIG — SENDGRID
-
+# 📌 EMAIL CONFIG
+# -----------------------------
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-#EMAIL_BACKEND = 'django.core.mail.backends.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
@@ -225,27 +190,23 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 
-
-
 # -----------------------------
 # 📌 DJOSER CONFIG
 # -----------------------------
 DJOSER = {
     'SERIALIZERS': {
-        #'user_create': 'core.serializers.UserCreateSerializer',
+        'user_create': 'users.serializers.CustomUserCreateSerializer',
         'current_user': 'users.serializers.CustomUserSerializer',
         'user': 'users.serializers.CustomUserSerializer',
     },
-     'SEND_ACTIVATION_EMAIL': True,
+    'SEND_ACTIVATION_EMAIL': True,
     'ACTIVATION_URL': 'activation/{uid}/{token}',
-     'USER_CREATE_PASSWORD_RETYPE': True,
+    'USER_CREATE_PASSWORD_RETYPE': True,
     'PASSWORD_RESET_CONFIRM_RETYPE': True,
-     'TOKEN_MODEL': None,
-     'PASSWORD_RESET_CONFIRM_URL': 'password-reset/{uid}/{token}',
+    'TOKEN_MODEL': None,
+    'PASSWORD_RESET_CONFIRM_URL': 'password-reset/{uid}/{token}',
     'PASSWORD_RESET_SHOW_EMAIL_NOT_FOUND': True,
 }
-
-
 
 # -----------------------------
 # 📌 PESEPAY CONFIG
@@ -265,8 +226,10 @@ SITE_NAME = 'Uzinduzi Africa'
 # 📌 DEFAULT PK FIELD
 # -----------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-# -----------------------------
 
+# -----------------------------
+# 📌 ADMINS
+# -----------------------------
 ADMINS = [
     ('Admin', 'dike@uzinduziafrica.com'),
 ]
